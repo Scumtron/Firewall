@@ -14,7 +14,7 @@
 185.146.158.10
 212.109.222.131
 212.109.222.143
-# mirrorlist.centos.org | mirror.centos.org | mirrors.fedoraproject.org |
+# REPO
 8.43.85.67
 67.219.144.68
 67.219.148.138
@@ -30,7 +30,10 @@
 209.132.181.16
 209.132.190.2
 212.69.166.138
+213.32.5.7
 216.176.179.218
+# mirror.freethought-internet.co.uk
+176.74.19.52
 # mirror.i3d.net
 213.163.76.200
 # artfiles.org
