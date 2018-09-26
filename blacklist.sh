@@ -22,9 +22,10 @@ fi
 
 if [ ! -f "$blacklist" ]; then
         mv ${blacklist_new} ${blacklist}
-        nginx -t
+        nginx -s reload
         if [ $? -eq 0 ]; then
             echo "Blacklist installed"
+            exit 25
           else
             echo "Nginx test failed"
             exit 25
@@ -36,7 +37,13 @@ if cmp -s ${blacklist} ${blacklist_new} > /dev/null 2>&1; then
         echo "No updates for blacklist"
 else
         mv ${blacklist_new} ${blacklist}
-        nginx -t && service nginx reload
-        echo "Blacklist updated"
+        nginx -s reload
+        if [ $? -eq 0 ]; then
+            echo "Blacklist updated"
+            exit 25
+          else
+            echo "Nginx test failed"
+            exit 25
+        fi
 fi
 
