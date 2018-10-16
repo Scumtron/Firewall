@@ -20,7 +20,7 @@ echo "export EDITOR=/usr/bin/nano" >> /root/.bashrc
 service auditd stop && chkconfig auditd off
 
 # KVS only
-yum install -y memcached ffmpeg imagemagick gcc-c++
+yum install -y memcached ffmpeg ImageMagick gcc-c++
 curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl && chmod a+rx /usr/local/bin/youtube-dl
 cd /tmp && wget https://cytranet.dl.sourceforge.net/project/yamdi/yamdi/1.9/yamdi-1.9.tar.gz && tar xzvf yamdi-1.9.tar.gz
 cd yamdi-1.9 && make && make install
