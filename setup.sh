@@ -25,5 +25,5 @@ curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-
 cd /tmp && wget https://cytranet.dl.sourceforge.net/project/yamdi/yamdi/1.9/yamdi-1.9.tar.gz && tar xzvf yamdi-1.9.tar.gz
 cd yamdi-1.9 && make && make install
 
-rm -rf setup.sh
+cd && rm -rf setup.sh
 echo "Done"
