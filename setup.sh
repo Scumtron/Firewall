@@ -317,57 +317,25 @@ OSVersion() {
 	fi
 }
 
-PingTest() {
-	# shellcheck disable=SC2039
-	local ITER=5
-	# shellcheck disable=SC2086
-	ping -q -c ${ITER} -n ${1} 2>&1 | tail -1 | awk -F '/' '{print $5}' | awk -F. '{print $1}'
-}
-
-GetFastestMirror() {
-	# Detect fastest mirror. If redhat not needed. If mirror detected not needed
-
-	# Mirror already set
-	if [ -n "${MIRROR}" ]; then
-		return 0
-	fi
-
-	# For RH based OS using fastestmirror plugin. And if we do not planning install packages via install.sh
-	if [ "#${ISPOSTYPE}" = "#REDHAT" ] ; then
-		MIRROR=download.ispsystem.com
-		return 0
-	fi
-
-	Infon "Detecting fastest mirror..."
-	# shellcheck disable=SC2039
-	local PRU
-	PRU=$(PingTest download.ispsystem.com)
-	if [ -z "${PRU}" ]; then
-		PRU=10000
-	fi
-	if [ ${PRU} -lt 10 ]; then
-			export MIRROR=download.ispsystem.com
-	else
-		# shellcheck disable=SC2039
-		local PCDN
-		PCDN=$(PingTest cdn.ispsystem.com)
-		if [ -z "${PCDN}" ]; then
-			PCDN=10001
-		fi
-		if [ ${PRU} -lt ${PCDN} ]; then
-			export MIRROR=download.ispsystem.com
-		else
-			export MIRROR=cdn.ispsystem.com
-		fi
-	fi
-	Info " Using ${MIRROR}"
+CheckRepo() {
+	# Check if repository added
+	# $1 - repo name
+	case ${ISPOSTYPE} in
+		REDHAT)
+			# shellcheck disable=SC2086
+			yum repolist enabled 2>/dev/null | awk '{print $1}' | grep -q ${1}
+			;;
+		DEBIAN)
+			# shellcheck disable=SC2086,SC2086
+			apt-cache policy | awk -vrname=${1}/main '$NF == "Packages" && $(NF-2) == rname' | grep -q ${1}
+			;;
+	esac
 }
 
 InstallEpelRepo() {
 	# Install epel repo
 	# ${1} = true - Use cdn or mirrorlist
 	test "${ISPOSTYPE}" = "REDHAT" || return 0
-	test -z "${MIRROR}" && GetFastestMirror
 	Infon "Checking epel... "
 	if [ ! -f /etc/yum.repos.d/epel.repo ] || ! CheckRepo epel ; then
 		if rpm -q epel-release >/dev/null ; then
@@ -390,7 +358,6 @@ InstallEpelRepo() {
 				rpm -iU http://download.ispsystem.com/repo/centos/epel/7/x86_64/e/epel-release-7-10.noarch.rpm || return 1
 			fi
 		fi
-		yum -y update mysql-libs || return 1
 	else
 		if ! rpm -q epel-release >/dev/null ; then
 			# epel-release already in extras repository which enabled by default
@@ -404,34 +371,13 @@ InstallEpelRepo() {
 		sed -i -r '/\[epel\]/,/\[epel/s|^(mirrorlist=).*|\1http://download.ispsystem.com/repo/centos/epel/mirrorlist.txt|' /etc/yum.repos.d/epel.repo
 		yum clean all || :
 	fi
-	# If install with packages use mirrorlist with cdn
-	if [ "${1}" = "true" ]; then
-		MirrorlistInstall epel epel
-	fi
-
 }
 
 OSDetect
 CheckHostname
-CheckSELinux
 CheckAppArmor
-
-# Main
-yum update -y
-yum install -y epel-release
-rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
-rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm
-yum update -y
-yum install -y nano mc htop iftop
-
-export EDITOR=/usr/bin/nano
-echo "export EDITOR=/usr/bin/nano" >> /root/.bashrc
-
-if [ -e /var/run/auditd.pid ]; then 
-	service auditd stop >/dev/null 2>&1
-	chkconfig auditd off >/dev/null 2>&1
-	echo "Auditd stopped"
-fi
+CheckSELinux
+InstallEpelRepo
 
 while true
 do
@@ -455,15 +401,40 @@ do
 done
 
 if [ "#${kvs}" == "#true" ]; then
-	yum install -y memcached ffmpeg ImageMagick curl gcc-c++
 	curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl && chmod a+rx /usr/local/bin/youtube-dl
-	cd /tmp && wget https://cytranet.dl.sourceforge.net/project/yamdi/yamdi/1.9/yamdi-1.9.tar.gz && tar xzvf yamdi-1.9.tar.gz
-	cd yamdi-1.9 && make && make install
 fi
 
-if [ "#${isp}" == "#true" ]; then
-	cd /tmp && wget "http://cdn.ispsystem.com/install.sh" && sh install.sh ISPmanager --silent
-fi
+Info "Install software.."
+case ${ISPOSTYPE} in
+	REDHAT)
+		yum update -y
+		yum install -y nano mc htop iftop
+		if [ -e /var/run/auditd.pid ]; then 
+			service auditd stop >/dev/null 2>&1
+			chkconfig auditd off >/dev/null 2>&1
+			Info "Auditd stopped"
+		fi
+		if [ "#${kvs}" == "#true" ]; then
+			yum install -y memcached ffmpeg ImageMagick curl zip unzip gcc-c++
+			sed -i "s/"CACHESIZE=\"64\""/"CACHESIZE=\"1024\""/g" /etc/sysconfig/memcached
+			systemctl restart memcached && systemctl start memcached && systemctl enable memcached
+			cd /tmp && wget https://cytranet.dl.sourceforge.net/project/yamdi/yamdi/1.9/yamdi-1.9.tar.gz && tar xzvf yamdi-1.9.tar.gz
+			cd yamdi-1.9 && make && make install
+			Info "Software for KVS installed"
+		fi
+		yum -y makecache || yum -y makecache || return 1
+	;;
+	DEBIAN)
+		apt-get -y update 
+		if [ "#${kvs}" == "#true" ]; then
+			apt install -y memcached ffmpeg imagemagick curl zip unzip
+			Info "Software for KVS installed"
+		fi
+	;;
+	*)
+		Error "Unsupported OS family: ${ISPOSTYPE}"
+	;;
+esac
 
 if [ "#${isp}" == "#true" ]; then
 	cd /tmp && wget "http://cdn.ispsystem.com/install.sh" && sh install.sh ISPmanager --silent
