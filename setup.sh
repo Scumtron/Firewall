@@ -6,7 +6,6 @@
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
-
 Infon() {
 	# shellcheck disable=SC2059,SC2145
 	printf "\033[1;32m$@\033[0m"
