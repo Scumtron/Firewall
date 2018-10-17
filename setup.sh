@@ -507,8 +507,6 @@ EOF
 	modprobe nf_conntrack_ipv4
 	echo options nf_conntrack hashsize=131072 > /etc/modprobe.d/nf_conntrack.conf
 	
-	. /etc/profile
-	
 	cd /tmp && wget "http://cdn.ispsystem.com/install.sh" && sh install.sh --release stable ispmanager-lite-common 
 else
 	if [ "#${fpm}" == "#true" ]; then
@@ -517,6 +515,9 @@ else
 		wget http://mirrors.linuxeye.com/oneinstack-full.tar.gz && tar xzf oneinstack-full.tar.gz && ./oneinstack/install.sh --nginx_option 1 --apache_option 1 --php_option 4 --phpcache_option 1 --php_extensions ioncube,imagick,memcache --phpmyadmin  --db_option 5 --dbinstallmethod 2 --dbrootpwd ayvug3al --pureftpd  --memcached  --iptables 
 	fi
 fi
+
+# Set nano editor by default
+echo "export EDITOR=/usr/bin/nano" >> /root/.bashrc && export EDITOR=/usr/bin/nano && . /etc/profile
 
 # Set timezone
 rm -rf /etc/localtime
