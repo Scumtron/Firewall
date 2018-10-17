@@ -42,25 +42,25 @@ Error() {
 }
 
 OSDetect() {
-	test -n "${ISPOSTYPE}" && return 0
-	ISPOSTYPE=unknown
+	test -n "${OSTYPE}" && return 0
+	OSTYPE=unknown
 	kern=$(uname -s)
 	case "${kern}" in
 		Linux)
 		if [ -f /etc/redhat-release ] || [ -f /etc/centos-release ]; then
 			# RH family
-			export ISPOSTYPE=REDHAT
+			export OSTYPE=REDHAT
 		elif [ -f /etc/debian_version ]; then
 			# DEB family
-			export ISPOSTYPE=DEBIAN
+			export OSTYPE=DEBIAN
 		fi
 		;;
 		FreeBSD)
 			# FreeBSD
-			export ISPOSTYPE=FREEBSD
+			export OSTYPE=FREEBSD
 		;;
 	esac
-	if [ "#${ISPOSTYPE}" = "#unknown" ]; then
+	if [ "#${OSTYPE}" = "#unknown" ]; then
 		Error "Unknown os type. Try to use \"--osfamily\" option"
 		exit 1
 	fi
@@ -98,7 +98,7 @@ SetHostname() {
 #	test -z "${2}" && return 1
 	# shellcheck disable=SC2039,SC2086
 	local HOSTNAME=$(echo ${1} | sed 's|\.+$||')
-	case "${ISPOSTYPE}" in
+	case "${OSTYPE}" in
 	REDHAT)
 		# shellcheck disable=SC2086
 		hostname ${HOSTNAME} || return 1
@@ -131,7 +131,7 @@ SetHostname() {
 }
 
 CheckHostname() {
-	if [ "${ISPOSTYPE}" = "DEBIAN" ]; then
+	if [ "${OSTYPE}" = "DEBIAN" ]; then
 		# shellcheck disable=SC2039
 		local CURHOSTNAME=$(hostname -f ||:)
 	else
@@ -173,7 +173,7 @@ CheckHostname() {
 
 CheckAppArmor() {
 	# Check if this ubuntu
-	[ "${ISPOSTYPE}" = "DEBIAN" ] || return 0
+	[ "${OSTYPE}" = "DEBIAN" ] || return 0
 	[ "$(lsb_release -s -i)" = "Ubuntu" ] || return 0
 	if service apparmor status >/dev/null 2>&1 ; then
 #		if [ -n "$release" ] || [ -n "$silent" ]; then
@@ -254,7 +254,7 @@ CheckSELinux() {
 OSVersion() {
 	test -n "${OSVER}" && return 0
 	OSVER=unknown
-	case ${ISPOSTYPE} in
+	case ${OSTYPE} in
 		REDHAT)
 			if ! which which >/dev/null 2>/dev/null ; then
 				yum -y install which
@@ -320,7 +320,7 @@ OSVersion() {
 CheckRepo() {
 	# Check if repository added
 	# $1 - repo name
-	case ${ISPOSTYPE} in
+	case ${OSTYPE} in
 		REDHAT)
 			# shellcheck disable=SC2086
 			yum repolist enabled 2>/dev/null | awk '{print $1}' | grep -q ${1}
@@ -335,7 +335,7 @@ CheckRepo() {
 InstallEpelRepo() {
 	# Install epel repo
 	# ${1} = true - Use cdn or mirrorlist
-	test "${ISPOSTYPE}" = "REDHAT" || return 0
+	test "${OSTYPE}" = "REDHAT" || return 0
 	Infon "Checking epel... "
 	if [ ! -f /etc/yum.repos.d/epel.repo ] || ! CheckRepo epel ; then
 		if rpm -q epel-release >/dev/null ; then
@@ -405,7 +405,7 @@ do
 done
 
 Info "Install software.."
-case ${ISPOSTYPE} in
+case ${OSTYPE} in
 	REDHAT)
 		yum update -y
 		yum install -y nano mc htop iftop
@@ -432,7 +432,7 @@ case ${ISPOSTYPE} in
 		fi
 	;;
 	*)
-		Error "Unsupported OS family: ${ISPOSTYPE}"
+		Error "Unsupported OS family: ${OSTYPE}"
 	;;
 esac
 
