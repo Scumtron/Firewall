@@ -41,6 +41,11 @@ Info() {
 	Infon "$@\n"
 }
 
+Error() {
+	# shellcheck disable=SC2059,SC2145
+	printf "\033[1;31m$@\033[0m\n"
+}
+
 while true
 do
 	case "${1}" in
@@ -139,4 +144,3 @@ case ${OSTYPE} in
 		Error "Unsupported OS family: ${OSTYPE}"
 	;;
 esac
-
